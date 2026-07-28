@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Diario de Tandil (fixture)</title>
+  <entry>
+    <title>Se lanzó un nuevo programa de becas municipales</title>
+    <link href="https://diariotandil.example/educacion/nuevo-programa-becas" rel="alternate"/>
+    <id>https://diariotandil.example/educacion/nuevo-programa-becas</id>
+    <published>2026-07-27T12:00:00Z</published>
+    <updated>2026-07-27T12:00:00Z</updated>
+    <summary type="html"><![CDATA[El programa incluye becas para estudiantes secundarios.]]></summary>
+    <category term="Educacion"/>
+  </entry>
+</feed>

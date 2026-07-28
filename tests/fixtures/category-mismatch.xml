@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Diario de Tandil (fixture)</title>
+  <entry>
+    <title>Nota clasificada de forma inconsistente por la fuente</title>
+    <link href="https://diariotandil.example/deportes/nota-clasificada-inconsistente" rel="alternate"/>
+    <id>https://diariotandil.example/deportes/nota-clasificada-inconsistente</id>
+    <published>2026-07-27T13:00:00Z</published>
+    <updated>2026-07-27T13:00:00Z</updated>
+    <summary type="html"><![CDATA[La categoría declarada no coincide con la ruta del enlace.]]></summary>
+    <category term="Policiales"/>
+  </entry>
+</feed>

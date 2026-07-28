@@ -1,0 +1,3 @@
+Esto no es XML en absoluto, es la fuente devolviendo una página de error HTML sin cerrar
+<div class="error">
+  <p>502 Bad Gateway

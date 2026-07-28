@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Diario de Tandil (fixture)</title>
+  <entry>
+    <title>Triunfo del club local en el torneo regional</title>
+    <link href="https://diariotandil.example/deportes/triunfo-torneo-regional" rel="alternate"/>
+    <id>https://diariotandil.example/deportes/triunfo-torneo-regional</id>
+    <published>2026-07-27T20:00:00Z</published>
+    <updated>2026-07-27T20:00:00Z</updated>
+    <summary type="html"><![CDATA[El equipo local ganó por 2 a 0.]]></summary>
+    <category term="Deportes"/>
+  </entry>
+  <entry>
+    <title>Estrena la nueva obra en el teatro municipal</title>
+    <link href="https://diariotandil.example/espectaculos/nueva-obra-teatro" rel="alternate"/>
+    <id>https://diariotandil.example/espectaculos/nueva-obra-teatro</id>
+    <published>2026-07-27T21:10:00Z</published>
+    <updated>2026-07-27T21:10:00Z</updated>
+    <summary type="html"><![CDATA[La obra se presentará todos los fines de semana de agosto.]]></summary>
+    <category term="Espectaculos"/>
+  </entry>
+  <entry>
+    <title>Corte de tránsito por obras en el centro</title>
+    <link href="https://diariotandil.example/policiales/corte-transito-obras-centro" rel="alternate"/>
+    <id>https://diariotandil.example/policiales/corte-transito-obras-centro</id>
+    <published>2026-07-27T22:00:00Z</published>
+    <updated>2026-07-27T22:00:00Z</updated>
+    <summary type="html"><![CDATA[Habrá desvíos durante toda la semana.]]></summary>
+    <category term="Policiales"/>
+  </entry>
+</feed>

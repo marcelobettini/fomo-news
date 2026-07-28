@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Diario de Tandil (fixture)</title>
+  <entry>
+    <title>Incendio controlado en zona rural durante la madrugada</title>
+    <link href="https://diariotandil.example/policiales/incendio-zona-rural-madrugada" rel="alternate"/>
+    <id>https://diariotandil.example/policiales/incendio-zona-rural-madrugada</id>
+    <published>2026-07-28T02:15:00Z</published>
+    <updated>2026-07-28T02:15:00Z</updated>
+    <summary type="html"><![CDATA[Bomberos voluntarios trabajaron durante varias horas.]]></summary>
+    <category term="Policiales"/>
+  </entry>
+</feed>

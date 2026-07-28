@@ -144,8 +144,9 @@ registro correspondiente de la corrida.
 - **FR-004**: El sistema NUNCA DEBE conservar el cuerpo completo del artículo.
 - **FR-005**: El sistema DEBE descartar, sin almacenar, cualquier entrada cuya categoría no
   coincida con la categoría configurada como objetivo.
-- **FR-006**: El sistema DEBE normalizar espacios en blanco y saltos de línea en título y
-  nombre de autor antes de almacenar o comparar una entrada.
+- **FR-006**: El sistema DEBE normalizar espacios en blanco y saltos de línea en el título
+  antes de almacenar o comparar una entrada. El nombre de autor, si la fuente lo provee, no
+  se persiste ni se usa en esta especificación (ver FR-003).
 - **FR-007**: Cuando la fuente publique una actualización sobre una noticia ya almacenada, el
   sistema DEBE reflejar el contenido actualizado sin volver a contarla como nueva ni disparar
   de nuevo los efectos asociados a una noticia nueva.
@@ -187,8 +188,11 @@ registro correspondiente de la corrida.
   ni como fuente histórica.
 - **FR-021**: Dos corridas consecutivas que no encuentren noticias nuevas DEBEN dejar el
   sistema en un estado idéntico al de una sola corrida.
-- **FR-022**: El sistema DEBE detectar y reportar como pérdida de datos la situación en la que
-  se publicaron, entre dos corridas, más noticias que el tamaño de la ventana de la fuente.
+- **FR-022**: La alarma de FR-013 (cien por ciento de entradas nuevas en una corrida, con
+  historial de corridas exitosas previo) ES la forma en que el sistema detecta y reporta como
+  pérdida de datos la situación en la que se publicaron, entre dos corridas, más noticias que
+  el tamaño de la ventana de la fuente: ambas son la misma observación, ya que una corrida
+  nunca puede ver más de `entriesSeen` entradas nuevas (acotado por el tamaño de la ventana).
 
 ### Key Entities
 

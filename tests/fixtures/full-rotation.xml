@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Diario de Tandil (fixture)</title>
+  <entry>
+    <title>Noticia A tras un salto grande de la ventana</title>
+    <link href="https://diariotandil.example/policiales/noticia-rotacion-a" rel="alternate"/>
+    <id>https://diariotandil.example/policiales/noticia-rotacion-a</id>
+    <published>2026-07-27T10:00:00Z</published>
+    <updated>2026-07-27T10:00:00Z</updated>
+    <summary type="html"><![CDATA[Contenido de la noticia A.]]></summary>
+    <category term="Policiales"/>
+  </entry>
+  <entry>
+    <title>Noticia B tras un salto grande de la ventana</title>
+    <link href="https://diariotandil.example/policiales/noticia-rotacion-b" rel="alternate"/>
+    <id>https://diariotandil.example/policiales/noticia-rotacion-b</id>
+    <published>2026-07-27T11:00:00Z</published>
+    <updated>2026-07-27T11:00:00Z</updated>
+    <summary type="html"><![CDATA[Contenido de la noticia B.]]></summary>
+    <category term="Policiales"/>
+  </entry>
+</feed>

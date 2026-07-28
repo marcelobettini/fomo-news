@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Diario de Tandil (fixture)</title>
+  <entry>
+    <title>  Se aprobó   el presupuesto
+    municipal para el próximo año </title>
+    <link href="https://diariotandil.example/policiales/presupuesto-municipal-aprobado" rel="alternate"/>
+    <id>https://diariotandil.example/policiales/presupuesto-municipal-aprobado</id>
+    <published>2026-07-27T14:30:00Z</published>
+    <updated>2026-07-27T14:30:00Z</updated>
+    <summary type="html"><![CDATA[<img src="https://diariotandil.example/img/foto1.jpg"/>El Concejo Deliberante aprobó por mayoría el presupuesto municipal.]]></summary>
+    <category term="Policiales"/>
+  </entry>
+  <entry>
+    <title>Control vehicular en la ruta 226</title>
+    <link href="https://diariotandil.example/policiales/control-vehicular-ruta-226" rel="alternate"/>
+    <id>https://diariotandil.example/policiales/control-vehicular-ruta-226</id>
+    <published>2026-07-27T16:05:00Z</published>
+    <updated>2026-07-27T16:05:00Z</updated>
+    <summary type="html"><![CDATA[Efectivos realizaron controles vehiculares durante la tarde.]]></summary>
+    <category term="Policiales"/>
+  </entry>
+</feed>
