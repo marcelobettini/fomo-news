@@ -10,15 +10,20 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "pretest": "npm run build",
-    "test": "node --test dist/tests/unit/*.test.js",
-    "ingest": "node --env-file=.env dist/src/main.js"
+    "test": "node --test dist/tests/unit/*.test.js dist/tests/http/*.test.js",
+    "ingest": "node --env-file=.env dist/src/main.js",
+    "serve": "node --env-file=.env.server dist/src/server.js"
   },
   "dependencies": {
-    "mongodb": "^6.10.0",
-    "fast-xml-parser": "^5.10.1"
+    "@fastify/cors": "^11.3.0",
+    "@fastify/rate-limit": "^11.1.0",
+    "fast-xml-parser": "^5.10.1",
+    "fastify": "^5.10.0",
+    "mongodb": "^6.10.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "mongodb-memory-server": "^11.2.0",
     "typescript": "^5.7.0"
   }
 }

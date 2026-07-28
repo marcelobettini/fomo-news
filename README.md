@@ -7,6 +7,11 @@ No es un servidor: la periodicidad la provee **cron del sistema**, nunca un sche
 (Artículo II). Ver [`specs/001-news-feed-ingestion/`](specs/001-news-feed-ingestion/) para la
 especificación, el plan y las tareas completas de este feature.
 
+Este repositorio también incluye un segundo componente independiente: un endpoint HTTP
+público de solo lectura de las noticias del día — ver la sección
+[Endpoint público de noticias del día](#endpoint-público-de-noticias-del-día) más abajo. Ambos
+procesos se comunican únicamente a través de MongoDB; ninguno invoca al otro (Artículo II).
+
 ## Requisitos
 
 - Node.js LTS (>=22)
@@ -52,3 +57,49 @@ alguna alarma de pérdida de datos confirmada — el detalle completo queda en l
 Este proceso no se programa a sí mismo. Ver la sección "Configurar la periodicidad (cron)" en
 [quickstart.md](specs/001-news-feed-ingestion/quickstart.md) para un ejemplo de entrada de
 crontab y cómo calibrar el intervalo a partir de `runs.oldestEntryAt`.
+
+## Endpoint público de noticias del día
+
+Proceso HTTP de larga vida, independiente del ingestor, que expone de forma pública y de solo
+lectura las noticias de la categoría configurada publicadas durante el día local en curso.
+NUNCA escribe, NUNCA dispara ingesta y NUNCA llama a la fuente externa (Artículo III). Ver
+[`specs/002-public-news-endpoint/`](specs/002-public-news-endpoint/) para la especificación,
+el plan y el contrato HTTP completos.
+
+### Configuración
+
+Usa su propio archivo de entorno, separado del `.env` del ingestor (no comparten proceso ni
+credenciales — la conexión de este proceso a MongoDB es de solo lectura):
+
+```bash
+cp .env.server.example .env.server
+```
+
+Ver [env.server.md](env.server.md) para el significado de cada variable, su formato y valores
+de ejemplo.
+
+### Pruebas (sin red hacia Atlas ni hacia la fuente real)
+
+```bash
+npm test
+```
+
+El mismo comando que el ingestor: compila TypeScript y corre tanto los tests unitarios de
+`src/core` como los tests HTTP de este endpoint (`tests/http/`), estos últimos contra una
+instancia de MongoDB efímera en memoria (`mongodb-memory-server`), ejercitados con
+`fastify.inject()` sin abrir un puerto real. Ver
+[quickstart.md](specs/002-public-news-endpoint/quickstart.md) para el detalle de qué cubre
+cada test.
+
+### Ejecutar el servidor localmente
+
+```bash
+npm run build
+npm run serve
+```
+
+Escucha en el `PORT` configurado y responde en `GET /news`. Ver
+[contracts/http-contract.md](specs/002-public-news-endpoint/contracts/http-contract.md) para
+el contrato completo (`200`/`304`/`503`/`429`) y
+[quickstart.md](specs/002-public-news-endpoint/quickstart.md) para cómo validar manualmente
+los validadores de caché HTTP y el modo de fallo explícito.

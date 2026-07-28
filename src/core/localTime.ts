@@ -34,3 +34,51 @@ export function toLocalDateKey(instant: Date, timeZone: string): string {
   });
   return formatter.format(instant);
 }
+
+export interface LocalDayRange {
+  /** Instante UTC correspondiente al inicio (00:00:00) del día local vigente. */
+  startUtc: Date;
+  /** El instante de la consulta; el corte de "día en curso" nunca es un límite fijo. */
+  endUtc: Date;
+}
+
+/**
+ * Calcula el rango UTC del día calendario local vigente en `now`, según `timeZone` (Artículo
+ * VI: la decisión de "a qué día pertenece" se resuelve en hora local, nunca comparando
+ * instantes UTC directamente). Usado para filtrar noticias del "día en curso" sin depender de
+ * una biblioteca de fechas (feature 002, research.md §5).
+ */
+export function localDayRangeUtc(now: Date, timeZone: string): LocalDayRange {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(now);
+
+  const get = (type: Intl.DateTimeFormatPartTypes): number =>
+    Number(parts.find((part) => part.type === type)?.value ?? "0");
+
+  // Hora local vigente expresada como si fuera UTC (mismos números de reloj), para poder
+  // calcular el offset actual de la zona respecto de UTC sin una librería de fechas.
+  const localAsUtc = Date.UTC(
+    get("year"),
+    get("month") - 1,
+    get("day"),
+    get("hour") === 24 ? 0 : get("hour"),
+    get("minute"),
+    get("second"),
+  );
+  const offsetMs = localAsUtc - now.getTime();
+
+  // Medianoche local expresada con los mismos números de reloj, luego corregida por el
+  // offset para obtener el instante UTC real de inicio del día local.
+  const startOfLocalDayAsUtc = Date.UTC(get("year"), get("month") - 1, get("day"), 0, 0, 0);
+  const startUtc = new Date(startOfLocalDayAsUtc - offsetMs);
+
+  return { startUtc, endUtc: now };
+}

@@ -13,9 +13,10 @@ export interface EnvConfig {
   categorySilenceThresholdMs: number;
 }
 
-type EnvLike = { [key: string]: string | undefined };
+export type EnvLike = { [key: string]: string | undefined };
 
-function requireString(env: EnvLike, name: string): string {
+/** Reutilizado por otros procesos del repositorio (ver src/config/serverEnv.ts). */
+export function requireString(env: EnvLike, name: string): string {
   const value = env[name];
   if (value === undefined || value.trim() === "") {
     throw new Error(`Falta la variable de entorno requerida: ${name}`);
@@ -23,7 +24,20 @@ function requireString(env: EnvLike, name: string): string {
   return value;
 }
 
-function requirePositiveIntMs(env: EnvLike, name: string): number {
+/** Reutilizado por otros procesos del repositorio (ver src/config/serverEnv.ts). */
+export function requirePositiveInt(env: EnvLike, name: string): number {
+  const raw = requireString(env, name);
+  const value = Number(raw);
+  if (!Number.isFinite(value) || !Number.isInteger(value) || value <= 0) {
+    throw new Error(
+      `La variable de entorno ${name} debe ser un entero positivo, recibido: "${raw}"`,
+    );
+  }
+  return value;
+}
+
+/** Reutilizado por otros procesos del repositorio (ver src/config/serverEnv.ts). */
+export function requirePositiveIntMs(env: EnvLike, name: string): number {
   const raw = requireString(env, name);
   const value = Number(raw);
   if (!Number.isFinite(value) || value <= 0) {
