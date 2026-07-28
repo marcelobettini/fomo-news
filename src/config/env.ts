@@ -13,7 +13,9 @@ export interface EnvConfig {
   categorySilenceThresholdMs: number;
 }
 
-function requireString(env: NodeJS.ProcessEnv, name: string): string {
+type EnvLike = { [key: string]: string | undefined };
+
+function requireString(env: EnvLike, name: string): string {
   const value = env[name];
   if (value === undefined || value.trim() === "") {
     throw new Error(`Falta la variable de entorno requerida: ${name}`);
@@ -21,7 +23,7 @@ function requireString(env: NodeJS.ProcessEnv, name: string): string {
   return value;
 }
 
-function requirePositiveIntMs(env: NodeJS.ProcessEnv, name: string): number {
+function requirePositiveIntMs(env: EnvLike, name: string): number {
   const raw = requireString(env, name);
   const value = Number(raw);
   if (!Number.isFinite(value) || value <= 0) {
@@ -33,7 +35,7 @@ function requirePositiveIntMs(env: NodeJS.ProcessEnv, name: string): number {
 }
 
 /** Carga y valida la configuración; lanza si falta o es inválida alguna variable requerida. */
-export function loadEnvConfig(env: NodeJS.ProcessEnv = process.env): EnvConfig {
+export function loadEnvConfig(env: EnvLike = process.env as EnvLike): EnvConfig {
   const timeZone = requireString(env, "TIMEZONE");
   if (!isValidIanaTimeZone(timeZone)) {
     throw new Error(

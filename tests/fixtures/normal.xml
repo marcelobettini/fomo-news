@@ -8,7 +8,7 @@
     <id>https://diariotandil.example/policiales/presupuesto-municipal-aprobado</id>
     <published>2026-07-27T14:30:00Z</published>
     <updated>2026-07-27T14:30:00Z</updated>
-    <summary type="html"><![CDATA[<img src="https://diariotandil.example/img/foto1.jpg"/>El Concejo Deliberante aprobó por mayoría el presupuesto municipal.]]></summary>
+    <summary type="html"><![CDATA[<figure><img src="https://diariotandil.example/img/foto1.jpg" class="type:primaryImage" /></figure>El Concejo Deliberante aprobó por mayoría el presupuesto municipal.]]></summary>
     <category term="Policiales"/>
   </entry>
   <entry>

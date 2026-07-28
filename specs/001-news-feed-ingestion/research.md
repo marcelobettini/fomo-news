@@ -187,10 +187,11 @@ histórico" al tener vida corta garantizada por el motor.
 
 ## 14. Limpieza del resumen (eliminar imagen inicial, sin reescribir contenido)
 
-**Decision**: una función pequeña en `core` elimina únicamente la etiqueta `<img>` inicial
-del resumen (si existe) y normaliza espacios/saltos de línea, escrita a mano con una
-expresión regular acotada a ese patrón conocido, sin un parser HTML/DOM de propósito
-general.
+**Decision**: una función pequeña en `core` elimina únicamente la imagen inicial del resumen
+(si existe) y normaliza espacios/saltos de línea, escrita a mano con una expresión regular
+acotada a los patrones conocidos con que la fuente antepone esa imagen: una etiqueta `<img>`
+suelta, o (la forma real observada en la fuente en producción) un `<figure>` que envuelve el
+`<img>`. Sin un parser HTML/DOM de propósito general.
 
 **Rationale**: el Artículo VIII exige no reescribir ni generar contenido — la única
 transformación permitida es de formato, no de significado. Sumar una dependencia de parseo
