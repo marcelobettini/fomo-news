@@ -103,3 +103,38 @@ Escucha en el `PORT` configurado y responde en `GET /news`. Ver
 el contrato completo (`200`/`304`/`503`/`429`) y
 [quickstart.md](specs/002-public-news-endpoint/quickstart.md) para cómo validar manualmente
 los validadores de caché HTTP y el modo de fallo explícito.
+
+## Alta, confirmación y baja de suscriptores
+
+Mismo proceso HTTP que el endpoint de noticias (arriba), extendido con el ciclo de vida
+completo de un suscriptor por correo electrónico — doble opt-in verificado, baja sin fricción
+y desactivación automática ante señales negativas del canal de correo (rebote permanente,
+queja de no deseado). Ver
+[`specs/003-subscriber-lifecycle/`](specs/003-subscriber-lifecycle/) para la especificación,
+el plan y el contrato HTTP completos.
+
+**Flujo**:
+
+1. **Alta** — `POST /subscribers` con `{"email": "..."}` crea (o reutiliza) una suscripción
+   `pending`; nunca activa directamente. Responde siempre `202 {"status":"ok"}`, sin importar
+   el estado previo de la dirección (protección contra enumeración).
+2. **Confirmación** — el mensaje enviado incluye un enlace de un solo uso y vencimiento corto:
+   `GET /subscribers/confirm/{token}`. Al usarlo por primera vez y a tiempo, la suscripción
+   pasa a `active` y se registra el instante exacto de activación. Reutilizarlo da `409`; un
+   token vencido da `410`.
+3. **Baja** — un único paso, sin credenciales, por `GET` (enlace del cuerpo del mensaje) o
+   `POST` (baja de un clic RFC 8058, invocada por el propio cliente de correo):
+   `GET`/`POST /subscribers/unsubscribe/{token}`. Elimina los datos personales y deja solo un
+   identificador no reversible. Es idempotente: repetir la llamada sigue devolviendo `200`.
+   Volver a darse de alta con la misma dirección pasa de nuevo por el proceso completo de
+   confirmación.
+4. **Señales del canal** — `POST /webhooks/email` recibe notificaciones firmadas de Resend; un
+   rebote permanente o una queja desactivan la suscripción automáticamente; un fallo
+   transitorio no tiene efecto; una firma inválida se rechaza con `401` sin procesar el aviso.
+
+Usa las mismas variables de `.env.server` (ver [env.server.md](env.server.md) para las diez
+variables nuevas) y la misma suite de tests (`npm test`), contra `mongodb-memory-server` y un
+doble en memoria del adaptador de envío de correo — sin red hacia Resend ni hacia MongoDB
+Atlas. Ver [quickstart.md](specs/003-subscriber-lifecycle/quickstart.md) para validar el ciclo
+completo de punta a punta contra un entorno real (requiere el dominio verificado en Resend y
+el rol de Atlas acotado a `subscribers`/`suppressions` ya creados).

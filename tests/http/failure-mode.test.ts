@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildApp } from "../../src/http/app.js";
-import { startTestMongo } from "./testHelpers.js";
+import { startTestMongo, defaultSubscriberAppConfig } from "./testHelpers.js";
 
 const TIMEZONE = "America/Argentina/Buenos_Aires";
 
@@ -13,6 +13,7 @@ test("con el almacenamiento inaccesible, GET /news devuelve 503 explícito, nunc
     rateLimitMaxPerIp: 10_000,
     rateLimitWindowMs: 60_000,
     cacheTtlMs: 0,
+    ...defaultSubscriberAppConfig(mongo.db),
   });
 
   // Simula almacenamiento inaccesible: cierra el cliente y detiene el servidor en memoria

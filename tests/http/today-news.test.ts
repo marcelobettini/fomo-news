@@ -3,7 +3,14 @@ import assert from "node:assert/strict";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../../src/http/app.js";
 import { localDayRangeUtc } from "../../src/core/localTime.js";
-import { startTestMongo, seedNews, clearNews, makeNewsDoc, type TestMongo } from "./testHelpers.js";
+import {
+  startTestMongo,
+  seedNews,
+  clearNews,
+  makeNewsDoc,
+  defaultSubscriberAppConfig,
+  type TestMongo,
+} from "./testHelpers.js";
 
 const TIMEZONE = "America/Argentina/Buenos_Aires";
 
@@ -21,6 +28,7 @@ before(async () => {
     // caché (eso lo cubre cache-validators.test.ts) — sin esto, la caché devolvería datos
     // del test anterior tras el `clearNews` de `beforeEach`.
     cacheTtlMs: 0,
+    ...defaultSubscriberAppConfig(mongo.db),
   });
 });
 

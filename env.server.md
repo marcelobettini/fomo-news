@@ -2,7 +2,8 @@
 
 Este documento explica qué poner en `.env.server` y qué significa cada variable. Es el
 archivo de entorno del **segundo proceso** del repositorio — el endpoint HTTP público de solo
-lectura (`specs/002-public-news-endpoint/`) — completamente separado del `.env` del ingestor:
+lectura (`specs/002-public-news-endpoint/`), extendido por el ciclo de vida de suscriptores
+(`specs/003-subscriber-lifecycle/`) — completamente separado del `.env` del ingestor:
 procesos independientes, cada uno con su propio archivo, sin compartir credenciales. El
 archivo `.env.server.example` en la raíz del repositorio es la plantilla versionada (sin
 valores reales); copiarlo a `.env.server` y completarlo:
@@ -16,9 +17,10 @@ credenciales reales. Node lo carga de forma nativa al arrancar
 (`node --env-file=.env.server dist/src/server.js`, o `npm run serve`), sin ningún paquete
 gestor de entorno — mismo criterio que el ingestor (research.md §2 de la feature 001).
 
-Las seis variables son **obligatorias**: si falta una o tiene un formato inválido, el proceso
-lanza un error explícito al arrancar y termina con código de salida distinto de cero — no hay
-valores por defecto ocultos en el código (`src/config/serverEnv.ts`).
+Las dieciséis variables (seis de la feature 2, diez de la feature 3) son **obligatorias**: si
+falta una o tiene un formato inválido, el proceso lanza un error explícito al arrancar y
+termina con código de salida distinto de cero — no hay valores por defecto ocultos en el
+código (`src/config/serverEnv.ts`).
 
 ## MONGODB_READONLY_URI
 
@@ -120,6 +122,136 @@ aparezca en el endpoint.
 CACHE_TTL_MS=5000
 ```
 
+## MONGODB_SUBSCRIBERS_URI
+
+**Qué es**: la cadena de conexión a MongoDB Atlas para las rutas de ciclo de vida de
+suscriptores (`specs/003-subscriber-lifecycle/`), apuntando a un usuario de base de datos con
+un rol personalizado acotado **únicamente** a las colecciones `subscribers` y `suppressions`
+(`find`/`insert`/`update`/`remove`, sin ningún privilegio sobre `news`, `runs`, `categories`,
+`state` ni `raw_snapshots` — research.md §4 de la feature 3). Distinta tanto de
+`MONGODB_READONLY_URI` (solo lectura, exclusiva de `GET /news`) como de `MONGODB_URI` del
+ingestor.
+
+**Formato**: un connection string estándar de MongoDB.
+
+**Ejemplo**:
+```
+MONGODB_SUBSCRIBERS_URI=mongodb+srv://subscribers-rw:contraseña@cluster0.mongodb.net/fomo-news
+```
+
+Crear este usuario y su rol en Atlas es un paso de configuración externo a este repositorio,
+igual que el usuario de solo lectura de la feature 2.
+
+## PUBLIC_BASE_URL
+
+**Qué es**: la URL absoluta y pública en la que corre este proceso, usada para construir los
+enlaces de confirmación (`{PUBLIC_BASE_URL}/subscribers/confirm/{token}`) y de baja
+(`{PUBLIC_BASE_URL}/subscribers/unsubscribe/{token}`) embebidos en los mensajes de correo.
+
+**Formato**: una URL absoluta con esquema `https://`.
+
+**Ejemplo**:
+```
+PUBLIC_BASE_URL=https://noticias.tandil.example
+```
+
+## EMAIL_PROVIDER_API_KEY
+
+**Qué es**: la clave de la API de Resend (research.md §1/§2 de la feature 3), usada por el
+adaptador de envío (`src/adapters/emailSender.ts`) en el encabezado `Authorization`. Secreto —
+nunca versionar el valor real.
+
+**Formato**: el token que entrega el panel de Resend.
+
+## EMAIL_SENDER_ADDRESS
+
+**Qué es**: la dirección de correo remitente, verificada sobre el dominio propio en Resend
+(research.md §9 — requiere SPF/DKIM/DMARC publicados y propagados antes de que el envío real
+funcione).
+
+**Formato**: una dirección de correo.
+
+**Ejemplo**:
+```
+EMAIL_SENDER_ADDRESS=noticias@tandil.example
+```
+
+## EMAIL_WEBHOOK_SIGNING_SECRET
+
+**Qué es**: el secreto usado para verificar la firma HMAC-SHA256 (esquema Svix) de los
+webhooks entrantes de Resend en `POST /webhooks/email` (research.md §3). Sin esta
+verificación, cualquiera podría desactivar suscriptores enviando eventos falsos — por eso una
+firma ausente o inválida se rechaza con `401` antes de procesar el cuerpo. Secreto, nunca
+versionar.
+
+## EMAIL_SUPPRESSION_HASH_SECRET
+
+**Qué es**: el secreto del HMAC-SHA256 usado para derivar el `_id` de la colección
+`suppressions` a partir del correo normalizado (research.md §7) — el identificador no
+reversible y no derivable que sobrevive a una baja (FR-010). **Distinto** del secreto de firma
+de webhooks; comprometer uno no debe comprometer el otro. Secreto, nunca versionar.
+
+## CONFIRMATION_TOKEN_TTL_MS
+
+**Qué es**: cuánto tiempo permanece vigente el token de confirmación de una alta antes de
+vencer (FR-003/FR-005). Tras ese plazo, usar el enlace responde `410 Gone` en vez de activar la
+suscripción.
+
+**Formato**: un entero positivo, en milisegundos. Pensado para ser **corto** (horas, no
+semanas) — un vencimiento demasiado largo deja una ventana amplia para que un enlace de
+confirmación filtrado o reenviado por error active una suscripción mucho después de la
+solicitud original.
+
+**Ejemplo** (24 horas):
+```
+CONFIRMATION_TOKEN_TTL_MS=86400000
+```
+
+## SIGNUP_RESEND_COOLDOWN_MS
+
+**Qué es**: el tiempo mínimo entre reenvíos del mensaje de confirmación para la misma
+dirección pendiente (research.md §6). Cumple a la vez dos requisitos: que solicitudes
+repetidas no generen un mensaje por intento (FR-015) y que exista un límite de tasa por
+dirección de destino (FR-016), sin un segundo mecanismo aparte del propio modelo de datos.
+
+**Formato**: un entero positivo, en milisegundos.
+
+**Cómo elegir el valor**: lo bastante corto para que alguien que perdió el primer correo pueda
+pedir uno nuevo en un plazo razonable, lo bastante largo para que un origen abusivo no pueda
+forzar reenvíos indefinidamente.
+
+**Ejemplo** (10 minutos):
+```
+SIGNUP_RESEND_COOLDOWN_MS=600000
+```
+
+## SIGNUP_RATE_LIMIT_MAX_PER_IP
+
+**Qué es**: el máximo de solicitudes de alta (`POST /subscribers`) que se aceptan de una misma
+IP dentro de `SIGNUP_RATE_LIMIT_WINDOW_MS` (FR-016), **independiente** de
+`RATE_LIMIT_MAX_PER_IP` de `GET /news` — el alta es la única superficie donde alguien sin
+autenticar puede provocar un envío, por lo que merece su propio umbral, normalmente mucho más
+bajo que el de una simple lectura.
+
+**Formato**: un entero positivo.
+
+**Ejemplo**:
+```
+SIGNUP_RATE_LIMIT_MAX_PER_IP=5
+```
+
+## SIGNUP_RATE_LIMIT_WINDOW_MS
+
+**Qué es**: la ventana de tiempo, en milisegundos, sobre la que se cuenta
+`SIGNUP_RATE_LIMIT_MAX_PER_IP`.
+
+**Formato**: un entero positivo, en milisegundos.
+
+**Ejemplo** (1 minuto):
+```
+SIGNUP_RATE_LIMIT_WINDOW_MS=60000
+```
+
 ## Ejemplo de `.env.server` completo
 
 ```dotenv
@@ -129,6 +261,17 @@ PORT=3000
 RATE_LIMIT_MAX_PER_IP=60
 RATE_LIMIT_WINDOW_MS=60000
 CACHE_TTL_MS=5000
+
+MONGODB_SUBSCRIBERS_URI=mongodb+srv://subscribers-rw:contraseña@cluster0.mongodb.net/fomo-news
+PUBLIC_BASE_URL=https://noticias.tandil.example
+EMAIL_PROVIDER_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxx
+EMAIL_SENDER_ADDRESS=noticias@tandil.example
+EMAIL_WEBHOOK_SIGNING_SECRET=whsec_xxxxxxxxxxxxxxxxxxxxxxxx
+EMAIL_SUPPRESSION_HASH_SECRET=un-secreto-largo-y-aleatorio-distinto-del-anterior
+CONFIRMATION_TOKEN_TTL_MS=86400000
+SIGNUP_RESEND_COOLDOWN_MS=600000
+SIGNUP_RATE_LIMIT_MAX_PER_IP=5
+SIGNUP_RATE_LIMIT_WINDOW_MS=60000
 ```
 
 Los valores numéricos de este ejemplo son razonables para arrancar, pero no son parte de la

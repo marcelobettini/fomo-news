@@ -2,7 +2,14 @@ import { test, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../../src/http/app.js";
-import { startTestMongo, seedNews, clearNews, makeNewsDoc, type TestMongo } from "./testHelpers.js";
+import {
+  startTestMongo,
+  seedNews,
+  clearNews,
+  makeNewsDoc,
+  defaultSubscriberAppConfig,
+  type TestMongo,
+} from "./testHelpers.js";
 
 const TIMEZONE = "America/Argentina/Buenos_Aires";
 const TTL_MS = 50;
@@ -22,6 +29,7 @@ before(async () => {
     rateLimitMaxPerIp: 10_000,
     rateLimitWindowMs: 60_000,
     cacheTtlMs: TTL_MS,
+    ...defaultSubscriberAppConfig(mongo.db),
   });
 });
 

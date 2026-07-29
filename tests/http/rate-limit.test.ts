@@ -2,7 +2,13 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../../src/http/app.js";
-import { startTestMongo, seedNews, makeNewsDoc, type TestMongo } from "./testHelpers.js";
+import {
+  startTestMongo,
+  seedNews,
+  makeNewsDoc,
+  defaultSubscriberAppConfig,
+  type TestMongo,
+} from "./testHelpers.js";
 
 const TIMEZONE = "America/Argentina/Buenos_Aires";
 const MAX_PER_IP = 3;
@@ -19,6 +25,7 @@ before(async () => {
     rateLimitMaxPerIp: MAX_PER_IP,
     rateLimitWindowMs: 60_000,
     cacheTtlMs: 60_000,
+    ...defaultSubscriberAppConfig(mongo.db),
   });
 });
 
