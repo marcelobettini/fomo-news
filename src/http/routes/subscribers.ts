@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import type { Db } from "mongodb";
 import { isValidEmailFormat } from "../../core/emailFormat.js";
-import { generateToken, hashToken } from "../../core/tokens.js";
+import { generateToken, hashToken, deriveUnsubscribeToken } from "../../core/tokens.js";
 import { isConfirmationTokenExpired, isResendCooldownElapsed } from "../../core/subscriberLifecycle.js";
 import { buildConfirmationEmail } from "../../core/confirmationEmail.js";
 import type { EmailSender } from "../../adapters/emailSender.js";
@@ -24,6 +24,7 @@ export interface SubscribersRouteDeps {
   signupRateLimitMaxPerIp: number;
   signupRateLimitWindowMs: number;
   emailSuppressionHashSecret: string;
+  unsubscribeTokenSecret: string;
 }
 
 function confirmationUrlFor(publicBaseUrl: string, token: string): string {
@@ -77,7 +78,7 @@ export async function registerSubscribersRoutes(
 
       if (shouldSend) {
         const confirmationToken = generateToken();
-        const unsubscribeToken = generateToken();
+        const unsubscribeToken = deriveUnsubscribeToken(email, deps.unsubscribeTokenSecret);
         const confirmationTokenExpiresAt = new Date(now.getTime() + deps.confirmationTokenTtlMs);
 
         if (!existing) {
@@ -93,18 +94,20 @@ export async function registerSubscribersRoutes(
             email,
             confirmationTokenHash: hashToken(confirmationToken),
             confirmationTokenExpiresAt,
-            unsubscribeTokenHash: hashToken(unsubscribeToken),
             now,
           });
         }
 
-        await deps.emailSender.send(
+        const result = await deps.emailSender.send(
           buildConfirmationEmail({
             to: email,
             confirmationUrl: confirmationUrlFor(deps.publicBaseUrl, confirmationToken),
             unsubscribeUrl: unsubscribeUrlFor(deps.publicBaseUrl, unsubscribeToken),
           }),
         );
+        if (result !== "confirmed") {
+          throw new Error("No se pudo enviar el correo de confirmación");
+        }
       }
 
       // FR-017: cuerpo y código fijos, idénticos sin importar el estado interno.

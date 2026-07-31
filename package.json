@@ -10,9 +10,14 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "pretest": "npm run build",
-    "test": "node --test dist/tests/unit/*.test.js dist/tests/http/*.test.js",
+    "test": "node --test dist/tests/unit/*.test.js dist/tests/http/*.test.js dist/tests/notifier/*.test.js",
     "ingest": "node --env-file=.env dist/src/main.js",
-    "serve": "node --env-file=.env.server dist/src/server.js"
+    "serve": "node --env-file=.env.server dist/src/server.js",
+    "notify": "node --env-file=.env.notifier dist/src/notifier.js",
+    "predev:server": "tsc -p tsconfig.json",
+    "dev:server": "node dist/src/devServer.js",
+    "predev:notifier": "tsc -p tsconfig.json",
+    "dev:notifier": "node dist/src/devNotifier.js"
   },
   "dependencies": {
     "@fastify/cors": "^11.3.0",

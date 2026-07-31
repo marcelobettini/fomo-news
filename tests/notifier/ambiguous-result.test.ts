@@ -1,0 +1,57 @@
+import { test, before, after, beforeEach } from "node:test";
+import assert from "node:assert/strict";
+import { runDigestOnce } from "../../src/notifier.js";
+import {
+  startNotifierTestMongo,
+  makeNewsDoc,
+  seedNews,
+  makeSubscriberDoc,
+  seedSubscribers,
+  makeFakeEmailSender,
+  defaultNotifierConfig,
+  type TestMongo,
+} from "./testHelpers.js";
+
+let mongo: TestMongo;
+
+before(async () => {
+  mongo = await startNotifierTestMongo();
+});
+
+after(async () => {
+  await mongo.stop();
+});
+
+beforeEach(async () => {
+  await mongo.db.collection("news").deleteMany({});
+  await mongo.db.collection("subscribers").deleteMany({});
+  await mongo.db.collection("deliveries").deleteMany({});
+});
+
+test("un resultado ambiguo del canal se trata como no entregado y se reintenta en el envío siguiente (FR-012)", async () => {
+  await seedSubscribers(mongo.db, [
+    makeSubscriberDoc({ _id: "persona@example.com", status: "active", activatedAt: new Date("2026-07-01T00:00:00.000Z") }),
+  ]);
+  await seedNews(mongo.db, [
+    makeNewsDoc({ link: "https://tandil.example/1", title: "Uno", summary: "...", publishedAt: new Date("2026-07-20T00:00:00.000Z") }),
+  ]);
+
+  const now1 = new Date("2026-07-29T00:00:00.000Z");
+  const senderRun1 = makeFakeEmailSender();
+  senderRun1.resultFor = () => "ambiguous";
+
+  const summary1 = await runDigestOnce({ db: mongo.db, emailSender: senderRun1, now: now1, config: defaultNotifierConfig() });
+  assert.equal(summary1.sendAmbiguous, 1);
+  assert.equal(summary1.itemsDelivered, 0, "un resultado ambiguo nunca se registra como entregado");
+
+  const deliveredCount = await mongo.db.collection("deliveries").countDocuments({ subscriberId: "persona@example.com" });
+  assert.equal(deliveredCount, 0);
+
+  const now2 = new Date("2026-07-29T06:00:00.000Z");
+  const senderRun2 = makeFakeEmailSender();
+  const summary2 = await runDigestOnce({ db: mongo.db, emailSender: senderRun2, now: now2, config: defaultNotifierConfig() });
+
+  assert.equal(senderRun2.sentMessages.length, 1, "se reintenta en la corrida siguiente");
+  assert.ok(senderRun2.sentMessages[0]!.text.includes("Uno"));
+  assert.equal(summary2.itemsDelivered, 1);
+});

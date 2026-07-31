@@ -2,7 +2,7 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import { MongoClient, type Db } from "mongodb";
 import type { NewsDocument } from "../../src/adapters/repository.js";
 import type { SubscriberDocument, SuppressionDocument } from "../../src/adapters/subscriberRepository.js";
-import type { EmailMessage, EmailSender } from "../../src/adapters/emailSender.js";
+import type { EmailMessage, EmailSendResult, EmailSender } from "../../src/adapters/emailSender.js";
 
 export interface TestMongo {
   db: Db;
@@ -91,20 +91,27 @@ export function makeSubscriberDoc(
 /**
  * Doble en memoria de `EmailSender` (research.md §11): guarda los mensajes "enviados" en un
  * arreglo, sin ninguna llamada de red, para que los tests HTTP puedan inspeccionar qué se
- * habría enviado.
+ * habría enviado. `resultFor` decide el resultado devuelto por cada envío — por defecto
+ * siempre `"confirmed"`; los tests de la feature 004 (`tests/notifier/`) lo sobrescriben para
+ * simular fallo/ambigüedad, incluso variando por destinatario dentro de la misma corrida
+ * (contracts/email-sender-contract.md).
  */
 export interface FakeEmailSender extends EmailSender {
   sentMessages: EmailMessage[];
+  resultFor: (message: EmailMessage) => EmailSendResult;
 }
 
 export function makeFakeEmailSender(): FakeEmailSender {
   const sentMessages: EmailMessage[] = [];
-  return {
+  const sender: FakeEmailSender = {
     sentMessages,
-    async send(message: EmailMessage): Promise<void> {
+    resultFor: () => "confirmed",
+    async send(message: EmailMessage): Promise<EmailSendResult> {
       sentMessages.push(message);
+      return sender.resultFor(message);
     },
   };
+  return sender;
 }
 
 /**
@@ -123,6 +130,7 @@ export function defaultSubscriberAppConfig(db: Db): {
   signupRateLimitWindowMs: number;
   emailWebhookSigningSecret: string;
   emailSuppressionHashSecret: string;
+  unsubscribeTokenSecret: string;
 } {
   return {
     subscribersDb: db,
@@ -134,5 +142,6 @@ export function defaultSubscriberAppConfig(db: Db): {
     signupRateLimitWindowMs: 60_000,
     emailWebhookSigningSecret: "test-webhook-signing-secret",
     emailSuppressionHashSecret: "test-suppression-hash-secret",
+    unsubscribeTokenSecret: "test-unsubscribe-token-secret",
   };
 }

@@ -92,6 +92,21 @@ export async function upsertNews(db: Db, record: MappedNews, now: Date): Promise
   return result.upsertedCount > 0;
 }
 
+/**
+ * Noticias publicadas después de `sinceInstant`, de más reciente a más antigua — usado por el
+ * resumen periódico de noticias (feature 004) para acotar la lectura a la ventana de antigüedad
+ * máxima configurada, antes de evaluar elegibilidad por suscriptor (data-model.md de
+ * specs/004-send-email-news/). La categoría ya viene acotada: `news` solo contiene la
+ * categoría objetivo (el ingestor filtra antes de escribir).
+ */
+export async function getNewsPublishedAfter(db: Db, sinceInstant: Date): Promise<NewsDocument[]> {
+  return db
+    .collection<NewsDocument>(NEWS_COLLECTION)
+    .find({ publishedAt: { $gt: sinceInstant } })
+    .sort({ publishedAt: -1 })
+    .toArray();
+}
+
 /** Categoría vista alguna vez en la fuente, objetivo o no (FR-012). */
 export interface CategoryDocument {
   _id: string;

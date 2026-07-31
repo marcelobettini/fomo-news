@@ -38,6 +38,8 @@ export interface AppConfig {
   signupRateLimitWindowMs: number;
   emailWebhookSigningSecret: string;
   emailSuppressionHashSecret: string;
+  /** Secreto compartido con el notifier para derivar el token de baja (research.md §8 de specs/004-send-email-news/). */
+  unsubscribeTokenSecret: string;
 }
 
 /**
@@ -114,6 +116,7 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
     signupRateLimitMaxPerIp: config.signupRateLimitMaxPerIp,
     signupRateLimitWindowMs: config.signupRateLimitWindowMs,
     emailSuppressionHashSecret: config.emailSuppressionHashSecret,
+    unsubscribeTokenSecret: config.unsubscribeTokenSecret,
   });
 
   await registerEmailWebhookRoute(app, {

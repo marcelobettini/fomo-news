@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
 import type { Db } from "mongodb";
 import { connect as connectGeneric, type RepositoryHandle } from "./repository.js";
+import { DELIVERIES_COLLECTION } from "./deliveryRepository.js";
 
 /** Ciclo de vida del documento de suscriptor (data-model.md); eliminado por completo al darse de baja. */
 export interface SubscriberDocument {
@@ -52,6 +53,25 @@ export async function findByEmail(db: Db, email: string): Promise<SubscriberDocu
   return db.collection<SubscriberDocument>(SUBSCRIBERS_COLLECTION).findOne({ _id: email });
 }
 
+/**
+ * Suscriptores activos, para el cálculo de pendientes del resumen periódico (feature 004,
+ * FR-017): un suscriptor no activo (`pending`, dado de baja o eliminado por señal negativa del
+ * canal) nunca recibe un envío, aunque tenga noticias elegibles.
+ */
+export interface ActiveSubscriber {
+  _id: string;
+  /** Siempre presente: la consulta ya filtra `status === "active"` (data-model.md). */
+  activatedAt: Date;
+}
+
+export async function getActiveSubscribers(db: Db): Promise<ActiveSubscriber[]> {
+  const docs = await db
+    .collection<SubscriberDocument>(SUBSCRIBERS_COLLECTION)
+    .find({ status: "active" }, { projection: { activatedAt: 1 } })
+    .toArray();
+  return docs.map((doc) => ({ _id: doc._id, activatedAt: doc.activatedAt as Date }));
+}
+
 export async function findByConfirmationTokenHash(
   db: Db,
   confirmationTokenHash: string,
@@ -92,20 +112,16 @@ export interface ReissueConfirmationTokenParams {
   email: string;
   confirmationTokenHash: string;
   confirmationTokenExpiresAt: Date;
-  /**
-   * Se rota junto con el token de confirmación (nunca se persiste ni se deriva el valor en
-   * claro de ningún token — tokens.ts/FR-018 — por lo que el token de baja original es
-   * irrecuperable en un reenvío; el enlace de baja del mensaje superado queda invalidado, el
-   * del mensaje reenviado —el que la persona efectivamente tiene— funciona).
-   */
-  unsubscribeTokenHash: string;
   now: Date;
 }
 
 /**
  * `pending → pending` tras cooldown vencido (FR-015, research.md §6): reemplaza el token de
- * confirmación vigente, rota también `unsubscribeTokenHash` (ver nota en el tipo de params) y
- * actualiza `lastRequestAt`.
+ * confirmación vigente y actualiza `lastRequestAt`. `unsubscribeTokenHash` NO se toca: desde
+ * que se deriva de forma determinística (`deriveUnsubscribeToken`,
+ * specs/004-send-email-news/research.md §8) es el mismo valor para una misma dirección
+ * siempre, así que no hace falta rotarlo ni reenviarlo — el enlace de baja de cualquier mensaje
+ * previo sigue siendo válido.
  */
 export async function reissueConfirmationToken(
   db: Db,
@@ -117,7 +133,6 @@ export async function reissueConfirmationToken(
       $set: {
         confirmationTokenHash: params.confirmationTokenHash,
         confirmationTokenExpiresAt: params.confirmationTokenExpiresAt,
-        unsubscribeTokenHash: params.unsubscribeTokenHash,
         lastRequestAt: params.now,
       },
     },
@@ -147,10 +162,18 @@ export interface DeleteAndSuppressParams {
  * un identificador HMAC no reversible y no derivable del correo (research.md §7) — nunca el
  * correo en claro. `upsert` porque una misma dirección puede volver a suscribirse y ser
  * suprimida más de una vez a lo largo del tiempo.
+ *
+ * También elimina el historial de entregas del suscriptor en `deliveries` (feature 004,
+ * FR-019): esa colección pertenece al ámbito de `MONGODB_NOTIFIER_URI`, distinto de la
+ * credencial que usa este módulo (`MONGODB_SUBSCRIBERS_URI`) — el rol de esta última se amplía
+ * explícitamente para permitir `deleteMany` sobre `deliveries`, y solo eso
+ * (specs/004-send-email-news/research.md §9), para que la baja de datos personales sea
+ * inmediata y no dependa de que el notifier corra de nuevo.
  */
 export async function deleteAndSuppress(db: Db, params: DeleteAndSuppressParams): Promise<void> {
   const suppressionId = createHmac("sha256", params.hmacSecret).update(params.email).digest("hex");
   await db.collection<SubscriberDocument>(SUBSCRIBERS_COLLECTION).deleteOne({ _id: params.email });
+  await db.collection(DELIVERIES_COLLECTION).deleteMany({ subscriberId: params.email });
   await db.collection<SuppressionDocument>(SUPPRESSIONS_COLLECTION).updateOne(
     { _id: suppressionId },
     { $set: { reason: params.reason, suppressedAt: params.now } },

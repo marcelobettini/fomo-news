@@ -9,8 +9,10 @@ especificación, el plan y las tareas completas de este feature.
 
 Este repositorio también incluye un segundo componente independiente: un endpoint HTTP
 público de solo lectura de las noticias del día — ver la sección
-[Endpoint público de noticias del día](#endpoint-público-de-noticias-del-día) más abajo. Ambos
-procesos se comunican únicamente a través de MongoDB; ninguno invoca al otro (Artículo II).
+[Endpoint público de noticias del día](#endpoint-público-de-noticias-del-día) más abajo — y un
+tercero, el [envío periódico de noticias por correo](#envío-periódico-de-noticias-por-correo),
+del mismo tipo que el ingestor (una sola pasada, invocado por cron). Los tres procesos se
+comunican únicamente a través de MongoDB; ninguno invoca al otro (Artículo II).
 
 ## Requisitos
 
@@ -138,3 +140,110 @@ doble en memoria del adaptador de envío de correo — sin red hacia Resend ni h
 Atlas. Ver [quickstart.md](specs/003-subscriber-lifecycle/quickstart.md) para validar el ciclo
 completo de punta a punta contra un entorno real (requiere el dominio verificado en Resend y
 el rol de Atlas acotado a `subscribers`/`suppressions` ya creados).
+
+### Probar el ciclo de suscriptores en local, sin Resend ni Atlas
+
+```bash
+npm run dev:server
+```
+
+Levanta el mismo `buildApp()` de producción en `http://localhost:3000` (`PORT` configurable),
+pero contra un Mongo efímero en memoria (`mongodb-memory-server`, se pierde al reiniciar) y con
+un `EmailSender` que imprime el mensaje por consola en vez de enviarlo — no hace falta dominio,
+cuenta de Resend ni cluster de Atlas. Los enlaces de confirmación/baja (con su token) quedan
+impresos en la terminal, listos para pegar en Insomnia/curl:
+
+```bash
+curl -X POST http://localhost:3000/subscribers \
+  -H 'Content-Type: application/json' -d '{"email":"tu-correo-de-prueba@ejemplo.com"}'
+# copiar el token que aparece en la terminal:
+curl http://localhost:3000/subscribers/confirm/<token>
+```
+
+Uso exclusivo de desarrollo local (`src/devServer.ts`) — no valida variables de entorno ni
+persiste datos entre corridas; para el ciclo real contra Resend seguir el
+[quickstart.md](specs/003-subscriber-lifecycle/quickstart.md) de arriba.
+
+## Envío periódico de noticias por correo
+
+Tercer proceso, del mismo tipo que el ingestor: una sola pasada que arranca, calcula, envía,
+registra y termina — no un servidor, sin scheduler interno (Artículo II). En cada horario de
+envío configurado en cron, calcula para cada suscriptor activo exactamente qué noticias le
+corresponden (nunca por marca de agua temporal, siempre por resta contra un registro de
+entregas persistente — Artículo I) y las entrega por correo, respetando una ventana horaria
+local permitida y un tope de noticias por mensaje. Ver
+[`specs/004-send-email-news/`](specs/004-send-email-news/) para la especificación, el plan y
+los contratos completos.
+
+**Garantías centrales**:
+
+- Un suscriptor nunca recibe dos veces la misma noticia, incluso si el proceso se invoca dos
+  veces seguidas o se reintenta manualmente — la propiedad surge del propio cálculo, no de una
+  salvaguarda añadida.
+- Una noticia incorporada tarde (la fuente la reveló después, o hubo una recuperación tras una
+  caída) igual se entrega, aunque su fecha de publicación sea anterior al último envío
+  ejecutado.
+- Una entrega se registra solo después de que el canal la confirma; un resultado ambiguo se
+  trata como no entregado y se reintenta en el envío siguiente — nunca se asume éxito ante la
+  duda.
+- Ninguna noticia se purga por retención mientras siga pendiente de entrega para algún
+  suscriptor activo — verificado al arrancar (ver `NEWS_RETENTION_MS` en
+  [env.notifier.md](env.notifier.md)), no solo documentado.
+
+### Configuración
+
+Usa su propio archivo de entorno, separado de `.env` y `.env.server` (ninguno de los tres
+procesos comparte credenciales de Mongo entre sí):
+
+```bash
+cp .env.notifier.example .env.notifier
+```
+
+Ver [env.notifier.md](env.notifier.md) para el significado de cada variable, su formato,
+valores de ejemplo, y un ejemplo de entrada de crontab.
+
+**Requisito de despliegue**: la VM debe tener su zona horaria del **sistema operativo** fijada
+a la misma zona que `TIMEZONE` — si queda en UTC, los horarios de cron se desplazan sin ningún
+aviso (ver env.notifier.md).
+
+### Pruebas (sin red hacia Atlas ni hacia Resend)
+
+```bash
+npm test
+```
+
+Mismo comando que el resto: además de los tests unitarios y HTTP ya existentes, corre los
+tests de este proceso (`tests/notifier/`) contra `mongodb-memory-server` con un adaptador de
+envío en memoria configurable — pudiendo simular confirmación, fallo o resultado ambiguo del
+canal — y con el instante de la corrida (`now`) siempre explícito, para poder probar el
+comportamiento a lo largo de varios envíos, los límites de la ventana horaria y la
+acumulación tras una caída sin esperar al reloj real. Ver
+[quickstart.md](specs/004-send-email-news/quickstart.md) para el detalle completo.
+
+### Ejecutar una corrida real
+
+```bash
+npm run build
+npm run notify
+```
+
+Código de salida `0`: corrida exitosa (incluye "nada pendiente para nadie" y "fuera de la
+ventana horaria permitida", ambos casos normales) o corrida omitida por exclusión mutua. Un
+fallo de envío a un suscriptor puntual no hace fallar la corrida — se reintenta solo, en la
+corrida siguiente. Código distinto de `0`: configuración inválida o incoherente, o fallo de
+infraestructura. Ver
+[contracts/notifier-cli-contract.md](specs/004-send-email-news/contracts/notifier-cli-contract.md)
+para el contrato completo.
+
+### Probar el envío en local, sin Resend ni Atlas
+
+```bash
+npm run dev:notifier
+```
+
+Mismo patrón que `npm run dev:server`: Mongo efímero en memoria, sembrado con suscriptores de
+ejemplo con `activatedAt` distintos y algunas noticias, y un `EmailSender` que imprime cada
+mensaje por consola en vez de enviarlo. Uso exclusivo de desarrollo local
+(`src/devNotifier.ts`) — no valida variables de entorno ni persiste datos entre corridas; para
+el envío real contra Resend seguir el
+[quickstart.md](specs/004-send-email-news/quickstart.md) de arriba (Vía 3).

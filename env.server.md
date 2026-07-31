@@ -17,10 +17,10 @@ credenciales reales. Node lo carga de forma nativa al arrancar
 (`node --env-file=.env.server dist/src/server.js`, o `npm run serve`), sin ningún paquete
 gestor de entorno — mismo criterio que el ingestor (research.md §2 de la feature 001).
 
-Las dieciséis variables (seis de la feature 2, diez de la feature 3) son **obligatorias**: si
-falta una o tiene un formato inválido, el proceso lanza un error explícito al arrancar y
-termina con código de salida distinto de cero — no hay valores por defecto ocultos en el
-código (`src/config/serverEnv.ts`).
+Las diecisiete variables (seis de la feature 2, diez de la feature 3, una de la feature 4) son
+**obligatorias**: si falta una o tiene un formato inválido, el proceso lanza un error explícito
+al arrancar y termina con código de salida distinto de cero — no hay valores por defecto
+ocultos en el código (`src/config/serverEnv.ts`).
 
 ## MONGODB_READONLY_URI
 
@@ -252,6 +252,24 @@ SIGNUP_RATE_LIMIT_MAX_PER_IP=5
 SIGNUP_RATE_LIMIT_WINDOW_MS=60000
 ```
 
+## UNSUBSCRIBE_TOKEN_SECRET
+
+**Qué es**: el secreto compartido con `.env.notifier` (mismo valor en ambos archivos) usado
+para derivar de forma determinística el token de baja: `HMAC-SHA256(correo, secreto)`, en vez
+de un token aleatorio (`specs/004-send-email-news/research.md` §8). A diferencia del token de
+confirmación (aleatorio, de un solo uso, cuyo valor en claro nunca se persiste), el token de
+baja necesita poder recalcularse en cualquier momento — el resumen periódico de noticias
+(feature 4) lo reconstruye para armar el enlace de baja de cada mensaje, mucho después de que
+la persona confirmó su suscripción. **Distinto** de `EMAIL_WEBHOOK_SIGNING_SECRET` y de
+`EMAIL_SUPPRESSION_HASH_SECRET`. Secreto, nunca versionar.
+
+**Formato**: una cadena secreta, suficientemente larga y aleatoria.
+
+**Ejemplo**:
+```
+UNSUBSCRIBE_TOKEN_SECRET=otro-secreto-largo-y-aleatorio-compartido-con-el-notifier
+```
+
 ## Ejemplo de `.env.server` completo
 
 ```dotenv
@@ -272,6 +290,7 @@ CONFIRMATION_TOKEN_TTL_MS=86400000
 SIGNUP_RESEND_COOLDOWN_MS=600000
 SIGNUP_RATE_LIMIT_MAX_PER_IP=5
 SIGNUP_RATE_LIMIT_WINDOW_MS=60000
+UNSUBSCRIBE_TOKEN_SECRET=otro-secreto-largo-y-aleatorio-compartido-con-el-notifier
 ```
 
 Los valores numéricos de este ejemplo son razonables para arrancar, pero no son parte de la

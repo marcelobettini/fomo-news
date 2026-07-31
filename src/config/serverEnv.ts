@@ -22,6 +22,11 @@ export interface ServerEnvConfig {
   emailWebhookSigningSecret: string;
   /** Secreto del HMAC de `suppressions._id`, distinto del anterior (research.md §7). */
   emailSuppressionHashSecret: string;
+  /**
+   * Secreto compartido con `.env.notifier` para derivar de forma determinística el token de
+   * baja (specs/004-send-email-news/research.md §8). Distinto de los dos secretos anteriores.
+   */
+  unsubscribeTokenSecret: string;
   /** Vencimiento (ms) del token de confirmación de alta (FR-003/FR-005). */
   confirmationTokenTtlMs: number;
   /** Cooldown (ms) de reenvío / límite de tasa por dirección de destino (research.md §6). */
@@ -53,6 +58,7 @@ export function loadServerEnvConfig(env: EnvLike = process.env as EnvLike): Serv
     emailSenderAddress: requireString(env, "EMAIL_SENDER_ADDRESS"),
     emailWebhookSigningSecret: requireString(env, "EMAIL_WEBHOOK_SIGNING_SECRET"),
     emailSuppressionHashSecret: requireString(env, "EMAIL_SUPPRESSION_HASH_SECRET"),
+    unsubscribeTokenSecret: requireString(env, "UNSUBSCRIBE_TOKEN_SECRET"),
     confirmationTokenTtlMs: requirePositiveIntMs(env, "CONFIRMATION_TOKEN_TTL_MS"),
     signupResendCooldownMs: requirePositiveIntMs(env, "SIGNUP_RESEND_COOLDOWN_MS"),
     signupRateLimitMaxPerIp: requirePositiveInt(env, "SIGNUP_RATE_LIMIT_MAX_PER_IP"),

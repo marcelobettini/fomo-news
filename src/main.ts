@@ -26,7 +26,7 @@ async function run(): Promise<void> {
     await ensureNewsIndexes(repo.db);
     await ensureRawSnapshotIndexes(repo.db);
 
-    const acquired = await acquireLock(repo.db);
+    const acquired = await acquireLock(repo.db, "ingestor");
     if (!acquired) {
       // Corrida omitida por exclusión mutua: no es un fallo (contracts/cli-contract.md).
       console.error("Ya hay una corrida en curso; esta invocación se omite.");
@@ -35,7 +35,7 @@ async function run(): Promise<void> {
     try {
       await executeRun(repo.db, config);
     } finally {
-      await releaseLock(repo.db);
+      await releaseLock(repo.db, "ingestor");
     }
   } finally {
     await repo.close();

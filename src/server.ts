@@ -26,6 +26,7 @@ async function main(): Promise<void> {
     signupRateLimitWindowMs: config.signupRateLimitWindowMs,
     emailWebhookSigningSecret: config.emailWebhookSigningSecret,
     emailSuppressionHashSecret: config.emailSuppressionHashSecret,
+    unsubscribeTokenSecret: config.unsubscribeTokenSecret,
   })
 
   let shuttingDown = false

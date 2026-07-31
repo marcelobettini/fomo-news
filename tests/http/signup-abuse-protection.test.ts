@@ -38,6 +38,7 @@ before(async () => {
     signupRateLimitWindowMs: 60_000,
     emailWebhookSigningSecret: "test-webhook-signing-secret",
     emailSuppressionHashSecret: "test-suppression-hash-secret",
+    unsubscribeTokenSecret: "test-unsubscribe-token-secret",
   });
 });
 
