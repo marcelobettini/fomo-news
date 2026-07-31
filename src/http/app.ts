@@ -109,6 +109,8 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
 
   await registerSubscribersRoutes(app, {
     db: config.subscribersDb,
+    newsDb: config.db,
+    timeZone: config.timeZone,
     emailSender: config.emailSender,
     publicBaseUrl: config.publicBaseUrl,
     confirmationTokenTtlMs: config.confirmationTokenTtlMs,

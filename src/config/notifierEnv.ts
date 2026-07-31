@@ -7,7 +7,11 @@ export interface NotifierEnvConfig {
   mongoNotifierUri: string;
   timeZone: string;
   publicBaseUrl: string;
-  emailProviderApiKey: string;
+  /** SMTP (prueba de concepto Nodemailer, reemplaza a Resend para esta investigación). */
+  smtpHost: string;
+  smtpPort: number;
+  smtpUser: string;
+  smtpPass: string;
   emailSenderAddress: string;
   /** Secreto compartido con `.env.server` (research.md §8). */
   unsubscribeTokenSecret: string;
@@ -57,7 +61,10 @@ export function loadNotifierEnvConfig(env: EnvLike = process.env as EnvLike): No
     mongoNotifierUri: requireString(env, "MONGODB_NOTIFIER_URI"),
     timeZone,
     publicBaseUrl: requireString(env, "PUBLIC_BASE_URL"),
-    emailProviderApiKey: requireString(env, "EMAIL_PROVIDER_API_KEY"),
+    smtpHost: requireString(env, "SMTP_HOST"),
+    smtpPort: requirePositiveInt(env, "SMTP_PORT"),
+    smtpUser: requireString(env, "SMTP_USER"),
+    smtpPass: requireString(env, "SMTP_PASS"),
     emailSenderAddress: requireString(env, "EMAIL_SENDER_ADDRESS"),
     unsubscribeTokenSecret: requireString(env, "UNSUBSCRIBE_TOKEN_SECRET"),
     sendWindowStartLocal: requireLocalTime(env, "SEND_WINDOW_START_LOCAL"),

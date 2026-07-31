@@ -4,6 +4,8 @@ import { isValidEmailFormat } from "../../core/emailFormat.js";
 import { generateToken, hashToken, deriveUnsubscribeToken } from "../../core/tokens.js";
 import { isConfirmationTokenExpired, isResendCooldownElapsed } from "../../core/subscriberLifecycle.js";
 import { buildConfirmationEmail } from "../../core/confirmationEmail.js";
+import { buildDigestEmail } from "../../core/digestEmail.js";
+import { getTodayNews } from "../../adapters/newsReader.js";
 import type { EmailSender } from "../../adapters/emailSender.js";
 import {
   findByEmail,
@@ -17,6 +19,9 @@ import {
 
 export interface SubscribersRouteDeps {
   db: Db;
+  /** Conexión de solo lectura a `news` (feature 002), para el resumen de bienvenida al confirmar. */
+  newsDb: Db;
+  timeZone: string;
   emailSender: EmailSender;
   publicBaseUrl: string;
   confirmationTokenTtlMs: number;
@@ -134,6 +139,27 @@ export async function registerSubscribersRoutes(
     }
 
     await activate(deps.db, doc._id, now);
+
+    // Prueba de concepto (investigación SDD): además del resumen periódico de feature 004 (que
+    // solo cubre lo publicado después de esta activación), dispara un resumen de bienvenida con
+    // las noticias del día ya publicadas hasta este momento. No se registra en `deliveries` — el
+    // resumen periódico no puede duplicarlo porque su regla de elegibilidad exige
+    // publishedAt > activatedAt (src/core/digestEligibility.ts), así que estos ítems (todos
+    // anteriores a la activación) nunca calzan ahí. Un fallo de envío no revierte la activación
+    // ni afecta la respuesta (Artículo VII: degradar, no bloquear).
+    const todaysNews = await getTodayNews(deps.newsDb, now, deps.timeZone);
+    if (todaysNews.length > 0) {
+      const unsubscribeToken = deriveUnsubscribeToken(doc._id, deps.unsubscribeTokenSecret);
+      const welcomeMessage = buildDigestEmail({
+        to: doc._id,
+        items: todaysNews,
+        unsubscribeUrl: unsubscribeUrlFor(deps.publicBaseUrl, unsubscribeToken),
+        truncated: false,
+        publicNewsUrl: `${deps.publicBaseUrl}/news`,
+      });
+      await deps.emailSender.send(welcomeMessage);
+    }
+
     return reply.code(200).send({ status: "active", activatedAt: now.toISOString() });
   });
 

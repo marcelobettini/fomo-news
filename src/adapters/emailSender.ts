@@ -1,3 +1,5 @@
+import nodemailer from "nodemailer";
+
 /**
  * Contrato entre el núcleo (que construye contenido) y el adaptador (que lo entrega) —
  * Artículo V. El núcleo (`src/core/confirmationEmail.ts`) consume `EmailMessage` solo como
@@ -61,6 +63,47 @@ export function createResendEmailSender(apiKey: string, senderAddress: string): 
         return "ambiguous";
       }
       return response.ok ? "confirmed" : "failed";
+    },
+  };
+}
+
+/**
+ * Implementación de producción sobre SMTP vía Nodemailer (prueba de concepto de investigación
+ * SDD — reemplaza a Resend en las corridas reales de este experimento, `createResendEmailSender`
+ * queda intacto por si se retoma). Clasifica igual que el sender de Resend: `sendMail` resuelve
+ * y ningún destinatario fue rechazado → `"confirmed"`; resuelve pero el destinatario está en
+ * `rejected` → `"failed"`; `sendMail` lanza (sin red, auth SMTP inválida, timeout) → `"ambiguous"`.
+ */
+export function createNodemailerEmailSender(
+  smtpHost: string,
+  smtpPort: number,
+  smtpUser: string,
+  smtpPass: string,
+  senderAddress: string,
+): EmailSender {
+  const transporter = nodemailer.createTransport({
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpPort === 465,
+    auth: { user: smtpUser, pass: smtpPass },
+  });
+
+  return {
+    async send(message: EmailMessage): Promise<EmailSendResult> {
+      let info: Awaited<ReturnType<typeof transporter.sendMail>>;
+      try {
+        info = await transporter.sendMail({
+          from: senderAddress,
+          to: message.to,
+          subject: message.subject,
+          text: message.text,
+          html: message.html,
+          headers: message.headers,
+        });
+      } catch {
+        return "ambiguous";
+      }
+      return info.rejected.length === 0 ? "confirmed" : "failed";
     },
   };
 }

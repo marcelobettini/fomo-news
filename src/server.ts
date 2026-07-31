@@ -1,7 +1,7 @@
 import { loadServerEnvConfig } from "./config/serverEnv.js"
 import { connectReadonly } from "./adapters/newsReader.js"
 import { connect as connectSubscribers, ensureSubscriberIndexes } from "./adapters/subscriberRepository.js"
-import { createResendEmailSender } from "./adapters/emailSender.js"
+import { createNodemailerEmailSender } from "./adapters/emailSender.js"
 import { buildApp } from "./http/app.js"
 
 async function main(): Promise<void> {
@@ -9,7 +9,13 @@ async function main(): Promise<void> {
   const reader = await connectReadonly(config.mongoReadonlyUri)
   const subscribers = await connectSubscribers(config.mongoSubscribersUri)
   await ensureSubscriberIndexes(subscribers.db)
-  const emailSender = createResendEmailSender(config.emailProviderApiKey, config.emailSenderAddress)
+  const emailSender = createNodemailerEmailSender(
+    config.smtpHost,
+    config.smtpPort,
+    config.smtpUser,
+    config.smtpPass,
+    config.emailSenderAddress,
+  )
 
   const app = await buildApp({
     rateLimitMaxPerIp: config.rateLimitMaxPerIp,

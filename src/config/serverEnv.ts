@@ -14,9 +14,15 @@ export interface ServerEnvConfig {
   mongoSubscribersUri: string;
   /** Base para construir los enlaces de confirmación y de baja embebidos en los mensajes. */
   publicBaseUrl: string;
-  /** Clave de la API de Resend (research.md §1/§2 de specs/003-subscriber-lifecycle/). */
-  emailProviderApiKey: string;
-  /** Remitente verificado del dominio propio (research.md §9 de specs/003-subscriber-lifecycle/). */
+  /** Host SMTP (prueba de concepto Nodemailer, reemplaza a Resend para esta investigación). */
+  smtpHost: string;
+  /** Puerto SMTP; 465 implica TLS implícito. */
+  smtpPort: number;
+  /** Usuario SMTP (para Gmail, la dirección de correo completa). */
+  smtpUser: string;
+  /** Contraseña/"app password" SMTP. */
+  smtpPass: string;
+  /** Remitente del mensaje; para Gmail SMTP debe coincidir con `smtpUser`. */
   emailSenderAddress: string;
   /** Secreto de verificación de firma de webhooks (esquema Svix, research.md §3). */
   emailWebhookSigningSecret: string;
@@ -54,7 +60,10 @@ export function loadServerEnvConfig(env: EnvLike = process.env as EnvLike): Serv
     cacheTtlMs: requirePositiveIntMs(env, "CACHE_TTL_MS"),
     mongoSubscribersUri: requireString(env, "MONGODB_SUBSCRIBERS_URI"),
     publicBaseUrl: requireString(env, "PUBLIC_BASE_URL"),
-    emailProviderApiKey: requireString(env, "EMAIL_PROVIDER_API_KEY"),
+    smtpHost: requireString(env, "SMTP_HOST"),
+    smtpPort: requirePositiveInt(env, "SMTP_PORT"),
+    smtpUser: requireString(env, "SMTP_USER"),
+    smtpPass: requireString(env, "SMTP_PASS"),
     emailSenderAddress: requireString(env, "EMAIL_SENDER_ADDRESS"),
     emailWebhookSigningSecret: requireString(env, "EMAIL_WEBHOOK_SIGNING_SECRET"),
     emailSuppressionHashSecret: requireString(env, "EMAIL_SUPPRESSION_HASH_SECRET"),

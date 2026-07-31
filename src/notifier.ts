@@ -7,7 +7,7 @@ import {
   recordDelivery,
   getDeliveredNewsIds,
 } from "./adapters/deliveryRepository.js";
-import { createResendEmailSender, type EmailSender } from "./adapters/emailSender.js";
+import { createNodemailerEmailSender, type EmailSender } from "./adapters/emailSender.js";
 import { getActiveSubscribers } from "./adapters/subscriberRepository.js";
 import { isNewsEligible, selectPendingNews, selectForMessage } from "./core/digestEligibility.js";
 import { buildDigestEmail, type DigestNewsItem } from "./core/digestEmail.js";
@@ -148,7 +148,13 @@ async function main(): Promise<void> {
       return;
     }
     try {
-      const emailSender = createResendEmailSender(config.emailProviderApiKey, config.emailSenderAddress);
+      const emailSender = createNodemailerEmailSender(
+        config.smtpHost,
+        config.smtpPort,
+        config.smtpUser,
+        config.smtpPass,
+        config.emailSenderAddress,
+      );
       const now = new Date();
       const summary = await runDigestOnce({ db: repo.db, emailSender, now, config });
       console.error(
