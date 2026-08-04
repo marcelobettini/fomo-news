@@ -1,0 +1,44 @@
+schema: spec-driven
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+context: |
+  Repo: backend Node/TypeScript (Fastify, MongoDB) construido con SpecKit; specs viven en
+  specs/002-public-news-endpoint y specs/003-subscriber-lifecycle (contratos en
+  contracts/*.md de cada carpeta), no importadas a openspec/specs/. Este es el primer
+  change de OpenSpec sobre este repo (flujo brownfield): las specs de SpecKit son terreno
+  existente de solo lectura, no se migran.
+
+  Cambio en curso: app mobile Expo/React Native en mobile/ (subcarpeta autocontenida, con
+  su propio package.json/app.json — no toca el package.json/tsconfig de la raíz, que son
+  del backend). Se prueba solo con Expo Go en Simulador de iOS (macOS host); no hay deploy
+  ni producción. Una sola pantalla: lista de noticias + formulario de suscripción.
+
+  Contratos del backend que la app consume (no se modifican):
+  - GET /news (src/http/routes/news.ts): público, sin auth. Responde
+    { date, timezone, count, news: [{ title, summary, link, publishedAt }] }. 200 con
+    news: [] en un día sin noticias (nunca error). 503 { error: "storage_unavailable" } si
+    falla el almacenamiento, nunca disfrazado de lista vacía. Emite ETag/Last-Modified/
+    Cache-Control; soporta condicional GET con If-None-Match → 304.
+  - POST /subscribers (src/http/routes/subscribers.ts): { email }. 400
+    { error: "invalid_email" } solo por formato. Cualquier otro caso (alta nueva, reenvío,
+    ya activo, pendiente en cooldown) responde siempre 202 { status: "ok" } — deliberado,
+    no filtra si una dirección existe. Rate limit por IP.
+  - Confirmación (GET /subscribers/confirm/:token) y unsubscribe (GET/POST
+    /subscribers/unsubscribe/:token) ocurren 100% vía el link del correo, abierto en el
+    navegador del sistema — fuera de la app, la app no implementa esas pantallas.
+  - Backend local en http://localhost:3000 (npm run serve, PORT en .env.server). CORS
+    abierto (origin: true en src/http/app.ts).
+
+  Convención de comentarios del repo: solo explican el WHY no obvio (referencian
+  research.md/FR-xxx), nunca el WHAT — mantener el mismo criterio en mobile/.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
