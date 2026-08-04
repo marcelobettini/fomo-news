@@ -1,4 +1,33 @@
-# Ingestor — Captura periódica de noticias de Tandil
+# FOMO News
+
+Sistema que recolecta las noticias locales de Tandil y las pone a disposición de los
+lectores por dos vías: una API pública de consulta y un envío periódico por correo
+electrónico a quienes se suscriben. Está compuesto por cinco partes:
+
+- **Ingestor**: captura periódicamente las noticias desde la fuente y las incorpora al
+  sistema.
+- **API**: expone públicamente las noticias del día para quien quiera consultarlas.
+- **Gestión de suscriptores**: maneja el alta, la confirmación y la baja de quienes
+  quieren recibir las noticias por correo.
+- **Sistema de envíos**: entrega periódicamente por correo las noticias pendientes a
+  cada suscriptor activo.
+- **App móvil**: aplicación para leer las noticias desde el teléfono.
+
+### Herramientas
+
+- **Claude Code**: Opus para planificación. Sonnet para lo demás.
+- **SpecKit (greenfield)**: Ingestor. API. Gestión de suscriptores. Sistema de envíos.
+- **OpenSpec (brownfield)**: App móvil.
+
+### Notas de desarrollo
+
+- **8 horas de investigación y planificación**
+- **15 horas de desarrollo agéntico**
+- **Costo de Claude Code USD 130,83**
+
+---
+
+## Ingestor — Captura periódica de noticias de Tandil
 
 Proceso de una sola pasada que consulta el feed Atom de la fuente, filtra por categoría
 configurada, incorpora de forma idempotente las noticias nuevas y actualiza las existentes,
