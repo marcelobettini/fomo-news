@@ -1,7 +1,7 @@
 # FOMO News
 
 Sistema que recolecta las noticias locales de Tandil y las pone a disposición de los
-lectores por dos vías: una API pública de consulta y un envío periódico por correo
+usuarios por tres vías: una API pública de consulta, una App Móvil y un envío periódico por correo
 electrónico a quienes se suscriben. Está compuesto por cinco partes:
 
 - **Ingestor**: captura periódicamente las noticias desde la fuente y las incorpora al
